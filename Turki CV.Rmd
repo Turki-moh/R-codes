@@ -1,0 +1,170 @@
+---
+output: pdf_document
+header-includes:
+  - \usepackage{setspace}
+fontsize: 11 pt
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+\noindent\rule{\textwidth}{1pt}
+
+\centering
+\LARGE
+
+**Turki Bin Hammad**
+
+\large
+
+**Location:** London, United Kingdom
+
+**Mobile:** +447415015465
+
+**Email:** Binhammadt@gmail.com
+
+**GitHub:** github.com/turki-moh
+\noindent\rule{\textwidth}{1pt}
+
+\raggedright
+
+\section{\underline{EDUCATION}}
+\noindent\textbf{MSc in Epidemiology \hfill  09/2021-Present}
+
+\textbf{London School of Hygiene and Tropical Medicine (LSHTM), UK}
+
+\normalsize 
+
+- **Project title:** Effectiveness and safety of apixaban (compared to warfarin) in atrial fibrillation by BMI: a non-interventional study using the UK’s Clinical Practice Research Datalink (CPRD)
+
+- **Modules:** Extended Epidemiology, Statistics for EPH, Clinical Trials, Epidemiology in Practice, Demographic Methods, Epidemiology and -omics, Study Design: Writing a Study Proposal, Statistical Methods in Epidemiology, Epidemiology of Non-Communicable Diseases, Epidemiology of Infectious Diseases, Advanced Statistical Methods in Epidemiology
+ 
+\vspace{5mm}
+
+\large
+\noindent\textbf{BSc in Pharmaceutical Sciences (B. Pharm.) \hfill 2012–2017}
+
+**College of Pharmacy, King Saud University, Saudi Arabia**
+
+\normalsize 
+- GPA of 4.64 out of 5.0 with a second class of honour
+
+\noindent\rule{\textwidth}{1pt}
+
+\section{\underline{WORK EXPERINCE}}
+\large
+\noindent\textbf{Scientific evaluation specialist \hfill 10/2017-Present}
+
+
+**Benefit-Risk Evaluation Executive Directory** 
+
+**Saudi Food and Drug Authority (SFDA)**
+\vspace{4mm}
+
+\normalsize
+- **Team leader (08/2020-08/2021):**
+
+    **Summary:**
+
+    - Leading a team of 3 evaluators assessing the efficacy and safety of vaccines.
+
+    **Key responsibilities:**
+
+    - Provide scientific guidance to other team members
+
+    - Ensuring good review practice by the evaluators 
+
+    - Ensuring the reviews are completed according to the timelines 
+
+ 
+- **Evaluator (10/2017-08/2020):**
+
+    **Summary:**
+
+    - Preapre a report outlining the benefit-risk balance of New Human Drug Applications (NDAs) and New Drug Indications (NDIs) dossiers for approval in the Saudi market.
+
+
+    **Key responsibilities:**
+
+     Evaluate the methodological and clinical aspects of pre-marketing clinical studies (Phase I-III):
+     
+    - Evaluate the study protocol, design and outcome
+    - Review the statistical analysis plan 
+    - Analyse the available patient-level data
+
+\vspace{5mm}
+
+\large
+\noindent\textbf{Consultant \hfill 09/2020-05/2021}
+
+**National Centre for Evidence-Based Health Practice**
+
+**Saudi Health Council**
+\normalsize
+
+- Nominated by the Saudi FDA as a member of the scientific committee of the national centre for evidence-based practices in health
+
+
+\noindent\rule{\textwidth}{1pt}
+
+\section{\underline{COURSES}}
+
+\setlength{\parindent}{27pt}
+\large
+* \noindent\textbf{Statistics and Regressions with R: An Introduction  \hfill 12th-16th Aug 2019}
+
+\normalsize
+\indent{University college London's Centre for Applied Statistics Courses (CASC)}
+
+\indent{London, United Kingdom}
+
+\large
+ * \noindent\large\textbf{Principles of Research in Medicine and Epidemiology \hfill 6th–10th Aug 2018}
+
+\normalsize
+
+\indent{Erasmus Summer Programme at the Erasmus University Medical Centre}
+
+\indent{Rotterdam, the Netherlands}
+
+\large
+
+* \noindent\textbf{Pharmaco-epidemiology \hfill 6th–10th Aug 2018}
+
+\indent{Erasmus Summer Programme at the Erasmus University Medical Centre}
+
+\indent{Rotterdam, the Netherlands}
+
+\setlength{\parindent}{0pt}
+
+\noindent\rule{\textwidth}{1pt}
+
+
+\section*{\underline{HONORS AND ACTIVEITES}}
+
+- Distinguished employee at the Saudi FDA \hfill \textbf{2020}
+- Exceptional annual performance \hfill \textbf{2019,2020}
+- Member in the advisory council for college of pharmacy \hfill \textbf{2016-2017}
+- Head of public relations committee at pharmacy club \hfill \textbf{2016-2017}
+- Founder and head of Mentorship Program in the college of pharmacy \hfill \textbf{2016-2017}
+- Group leader of my colleagues \hfill \textbf{2015-2017}
+- Honoured by the Dean of Pharmacy College for my academic achievements \hfill \textbf{2016}
+
+\noindent\rule{\textwidth}{1pt}
+
+
+\section{\underline{PERSONAL SKILLS}}
+
+* \noindent\textbf{Languages}
+
+  - **Mother tongue**	Arabic
+  - **Other language**	English  
+  * \indent\textbf{IELTS (Overall 7.5: Listening 8, Reading 8.5, Writing 7, Speaking 7)}
+
+
+* \noindent\textbf{Other Skills}
+
+  - **R user** (Self-taught)
+  - **Microsoft office** (Word, PowerPoint, Excel)
+  - **Google sheets**
+
+
