@@ -1,0 +1,335 @@
+---
+title: "SME 12"
+author: "Turki Bin Hammad"
+date: "1/28/2022"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=TRUE, echo=TRUE, results='hide',fig.keep='none')
+```
+\centering
+# STATISTICAL METHODS IN EPIDEMIOLOGY
+
+# SESSION 12 PRACTICAL
+
+# Logistic regression 4
+
+\raggedright
+
+
+
+
++ **Start a new R script and save it**
+
++ **Install the required packages**
+
+
+```{r Requried packages, echo= T , eval=FALSE}
+
+install.packages("haven")
+install.packages("ggplot2")
+install.packages("ggthemes")
+install.packages("tidyverse")
+install.packages("tidyr")
+install.packages("epiDisplay")
+install.packages("mStats")
+install.packages("Epi")
+install.packages("biostat3")
+install.packages("naniar")
+
+```
+
+
+
++ **Load the packages**
+```{r load packages, eval=T, echo=T, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold'}
+
+library("haven")
+library("ggplot2")
+library("ggthemes")
+library("tidyverse")
+library("epiDisplay")
+library("dplyr")
+library("tidyr")
+library("mStats")
+library("Epi")
+library("biostat3")
+library("naniar")
+
+```
+
+
+
+-   Read the dataset
+
+```{r read dataset, eval=TRUE, echo=TRUE, results='hide'}
+# We will use the read_dta() function from haven package 
+#to read datasets saved as dta files
+# You can check the details of this function by searching its name
+#in the help tab or using question mark followed 
+#by the function name ?read_dta()
+mortality <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mortality.dta")     
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(mortality)
+# codebook is from mStats package 
+codebook(mortality)
+glimpse(mortality)
+```
+
+```{r}
+#To plot this you can use a simple plot like this one 
+plot(x= mortality$systolic, y=mortality$died)
+
+# or more aesthetic plot using ggplot() function 
+mortality %>% ggplot(aes(x=systolic,y=died)) + geom_point() + theme_stata() #From ggthemes
+
+```
+
+
+
+
+```{r}
+#Regroup the variable 
+#Note that here we used as.numeric rather than as.factor 
+#Thus, we need to define it using numerical values 1,2,3 
+mortality <-mortality %>% mutate( 
+    systolicgrp = as.numeric (case_when(
+      systolic < 120 ~ "1",
+      systolic >= 120 & systolic < 140 ~ "2",
+      systolic >= 140  ~ "3"
+    )))
+
+#Check the structure
+str(mortality$systolicgrp)
+
+#Tabulate the variable 
+tab1(mortality$systolicgrp)
+
+#Tabulate grouped systolic with min and max numerical systolic  
+mortality %>% 
+  group_by(systolicgrp) %>%
+  summarise(min =  min(systolic, na.rm = TRUE), 
+            max = max(systolic, na.rm = TRUE))
+
+#Tabulate grouped systolic with died 
+#You can remove missing values using na.rm= T
+mortality %>%  tab(systolicgrp, by=died, row.pct = T,na.rm=F)
+
+```
+ 
+ 
+
+```{r}
+#We will calculate the odds using mhor() function from mStats 
+#The odds can be found in Odds column  
+mhor(mortality,
+  exp=systolicgrp ,
+  case=died,
+  strata = NULL,
+  exp_value = NULL,
+  case_value = 1,
+  digits = 4)
+
+
+
+```
+
+
+```{r}
+#To plot the log(odds) we need to save it as a variable first 
+#We will first take the log scale of the odds from previous table 
+log(0.0231)
+log(0.0306) 
+log(0.0840)
+#Then save it in a variable 
+loggodds <- c(-3.767923,-3.486755,-2.476938)
+loggoddsgroups <- c("1","2","3")
+#Create a dataframe with log odds and row names 
+loggoddsd <- data.frame(y=loggodds,x=loggoddsgroups)
+loggoddsd
+
+#plot it using plot() function 
+plot(loggoddsd$x,loggoddsd$y)
+
+# or more aesthetic plot using ggplot() function 
+loggoddsd %>% ggplot(aes(y=y,x=x)) + geom_point() + theme_stata() 
+
+```
+
+
+```{r}
+
+#Fit the model 
+logoddssys <- glm(died~systolicgrp, family =binomial(link = "logit") , data = mortality,
+                 na.action = na.exclude)
+# Get a summary 
+summary(logoddssys)
+
+```
+
+```{r}
+logistic.display(logoddssys, decimal = 4)
+
+
+```
+
+
+
+```{r}
+#First we will create a new variable with systolicgrp as factor 
+mortality$systolicgrp1 <- factor(mortality$systolicgrp, levels = c(3,2,1), 
+                                 labels = c("<120","120-139","140+"))
+
+#Then we will define the baseline group in the variable 
+mortality$systolicgrp1 <- relevel(mortality$systolicgrp1, ref = "<120")
+
+# Now we will fit the model 
+logoddssys1 <- glm(died~systolicgrp1, family =binomial(link = "logit"), 
+                   data = mortality,na.action = na.exclude)
+
+#Get a summary of the model
+summary(logoddssys1)
+
+#Calculate ORs 
+logistic.display(logoddssys1, decimal = 4)
+```
+
+
+
+```{r}
+#First we will recode the variable as a numerical value 
+mortality <-mortality %>% mutate( 
+    systolicmid = as.numeric (case_when(
+      systolic < 120 ~ "100",
+      systolic >= 120 & systolic < 140 ~ "130",
+      systolic >= 140  ~ "150"
+    )))
+
+#Fit the model 
+logoddssysmid <- glm(died~systolicmid, family =binomial(link = "logit"), 
+                    data = mortality,na.action = na.exclude)
+
+#Get a summary 
+summary(logoddssysmid)
+# Calculate the ORs 
+logistic.display(logoddssysmid)
+```
+
+
+
+```{r}
+# Transform the variable vimp as a factor 
+mortality$vimp <- factor(mortality$vimp, levels = c(1,0), 
+                         labels = c("Visually impaired","Normal"))
+#Set the baseline 
+mortality$vimp <- relevel(mortality$vimp, ref = "Normal")
+
+# Save a new variable with agegrp as numerical 
+mortality$agegrpn <- as.numeric(mortality$agegrp)
+
+#Fit the model with vimp and agegrp as numerical 
+vimpagegrpn <- glm(died~vimp+agegrpn, family =binomial(link = "logit"), 
+                data = mortality,na.action = na.exclude)
+
+#Get a summary 
+summary(vimpagegrpn)
+
+logistic.display(vimpagegrpn)
+
+#Fit the model with vimp and agegrp as categorical 
+vimpagegrpcat <- glm(died~vimp+agegrp, family =binomial(link = "logit"), 
+                    data = mortality,na.action = na.exclude)
+#Get a summary 
+summary(vimpagegrpcat)
+
+#Calculate ORs 
+logistic.display(vimpagegrpcat)
+
+```
+
+```{r}
+#To conduct an LRT the interaction between vimp and agegrp 
+#We need to models one with the interaction and one without 
+#The model without the interaction was fitted in the pervious step vimpagegrpn
+
+# We will fit a model with interaction 
+vimpagegrpnint <- glm(died~vimp*agegrpn, family =binomial(link = "logit"), 
+                  data = mortality,na.action = na.exclude)
+
+lrtest(vimpagegrpnint,vimpagegrpn)
+
+```
+
+
+```{r}
+
+# Read the dataset
+Mwanza <- read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mwanza.DTA")
+
+#Explore 
+str(Mwanza)
+codebook(Mwanza)
+
+# Transform the outcome into factor 
+Mwanza$case <- factor(Mwanza$case, levels = c(1,0), 
+                         labels = c("case","control"))
+Mwanza$case <- relevel(Mwanza$case, ref = "control")
+#Check number of injections variable 
+str(Mwanza$inj)
+tab1(Mwanza$inj)
+
+# Replace values coded as 9 as NA
+Mwanza<- Mwanza %>% replace_with_na(replace = list(inj = 9))
+
+# Tab case by inj 
+tab(Mwanza,case,by=inj)
+
+#We will calculate the odds using mhor() function from mStats 
+#The odds can be found in Odds column  
+mhor(Mwanza,
+  exp=inj ,
+  case=case,
+  strata = NULL,
+  exp_value = NULL,
+  case_value = 1,
+  digits = 4)
+
+#Fit the model
+HIVinj <- glm(case~inj, family =binomial(link = "logit"), 
+                     data = Mwanza,na.action = na.exclude)
+#Get a summary 
+summary(HIVinj)
+
+#Calculate ORs 
+logistic.display(HIVinj)
+
+
+
+
+
+#This analysis included the zero group (inj=1). 
+#Now repeat the analysis excluding individuals 
+#who had no injections in the past year:
+
+#Create a new variable without 1 
+Mwanza <- Mwanza %>% mutate(injtrend= as.numeric(case_when(
+          inj == 2 ~ "2",
+          inj== 3 ~ "3",
+          inj == 4 ~ "4",
+          inj == 5 ~ "5"
+          )))
+
+#Fit the model using injtrend 
+HIVinjfit <-  glm(case~injtrend, family =binomial(link = "logit"), 
+                     data = Mwanza,na.action = na.exclude)
+
+#Get a summary 
+summary(HIVinjfit)
+
+#Calculate ORs 
+logistic.display(HIVinjfit, decimal = 4)
+
+```

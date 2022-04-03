@@ -1,0 +1,337 @@
+---
+title: 'SME SESSION 9: PRACTICAL'
+author: "Turki Bin Hammad"
+date: "1/21/2022"
+output: 
+  pdf_document:
+  highlight: pygments
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+number_sections: TRUE
+---
+
+\centering
+
+# STATISTICAL METHODS IN EPIDEMIOLOGY
+
+# SESSION 9: PRACTICAL
+
+# Logistic regression 1
+
+\raggedright
+
+1.  Start a new R script and save it ("9_Rscript file" is a suggested name), install the required packages for the process, load their libraries and then read the *mortality data*, mortality.dta. You can use summarize, codebook, describe and structure to familiarize yourself with the data.
+
+-   Start a new R script and save it
+
+-   Install the required packages
+
+```{r Requried packages, eval=FALSE, include=FALSE}
+
+install.packages("haven")
+install.packages("dplyr")
+install.packages("epiDisplay")
+install.packages("mStats")
+install.packages("epitools")
+install.packages("tidyverse")
+install.packages("Epi")
+```
+
+-   Load the packages
+
+```{r load packages, echo=FALSE, message=FALSE, warning=TRUE}
+
+library("haven")
+library("tidyverse")
+library("epiDisplay")
+library("dplyr")
+library("tidyr")
+library("mStats")
+library("Epi")
+library("biostat3")
+library("rstatix")
+library("insight")
+
+```
+
+
+-   Read the dataset
+
+```{r read dataset, eval=TRUE, echo=TRUE, results='hide'}
+# We will use the read_dta() function from haven package 
+#to read datasets saved as dta files
+# You can check the details of this function by searching its name
+#in the help tab or using question mark followed 
+#by the function name ?read_dta()
+mortality <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mortality.dta")     
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(mortality)
+# codebook is from mStats package 
+codebook(mortality)
+glimpse(mortality)
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+#First we need to check that our outcome is coded as a factor with two levels
+str(mortality$died)
+
+# Transform it to factor
+mortality$died <- factor(mortality$died, levels = c(1,0), labels = c("died","alive"))
+
+#Tabulate it to ensure everything was correct (using tab1() function from epiDisplay)
+tab1(mortality$died)
+
+# Tabulate the outcome by the exposure (using tab() function from mStats)
+mortality %>% tab(died,by=vimp)
+
+
+#We will convert our exposure variable vimp to factor 
+mortality$vimp <- factor(mortality$vimp, levels = c(1,0), 
+                         labels = c("Visually impaired","Normal"))
+
+#Calculate the odds in each group and the crude odds ratio (OR) using mhor from mStats 
+# To avoid having the reference levels confused 
+#we will define it using exp_value = 1, case_value = 1
+
+mhor(mortality,
+  exp=vimp ,
+  case=died,
+  strata = NULL,
+  exp_value = 1,
+  case_value = 1,
+  digits = 4)
+
+
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+
+#Sometimes R will not choose the desired value of the exposure or the outcome as a reference
+#So we can set the reference values using relevel() function
+mortality$vimp <- relevel(mortality$vimp, ref = "Normal")
+mortality$died <- relevel(mortality$died, ref = "alive")
+
+
+#Compute a logistic regression model 
+
+#To fit a logistic regression model in R you need to use the glm() function
+
+#This function works as follows 
+#glm(outcome~exposure, then you the likelihood distribution, 
+#specify your data, 
+#specify how you will deal with missing values(i.e. NAs))
+# Since we wanted to work on a log binomial scale we chose binomial(link = "logit")
+#There are different options as most of the regressions in R will use the same function 
+# glm() but the difference will be in the family = .... 
+
+mortaregg <- glm(died~vimp, family =binomial(link = "logit") , data = mortality,
+                 na.action = na.exclude)
+
+mortaregg
+
+#We can get more details about our model 
+summary(mortaregg)
+
+# Calculate the log likelihood of the model 
+get_loglikelihood(mortaregg)
+
+
+#Note that the estimates you have are on log scale and not the normal scale  
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+#Calculate odds ratio from the model 
+#using logistic.display() function from epiDisplay package
+
+logistic.display(mortaregg, alpha = 0.05, crude = TRUE, 
+    crude.p.value = FALSE, decimal = 4, simplified = FALSE)
+
+# This function does not show the Intercept (_cons in STATA)
+
+# OR
+exp(coef(mortaregg),confint.default(mortaregg))
+#95% CI 
+
+# You can conduct a wald test  (this is another option) and 
+#a Likelihood ratio test (LRT) using the functions below
+
+waldtest(mortaregg)
+lrtest(mortaregg)
+
+
+```
+
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+#We will convert our exposure variable mfgrp to factor 
+str(mortality$mfgrp)
+
+mortality$mfgrp <- factor(mortality$mfgrp, levels = c(0,1,2,3), 
+                          labels = c("Uninfected ", "<10", "10-49", "50+"))
+
+#Tabulate it to make sure that everything went smooth 
+tab1(mortality$mfgrp)
+
+# Tabulate the outcome by the exposure # We choose to remove NAs 
+mortality %>% tab(died,by=mfgrp, na.rm= T)
+
+
+
+#Calculate the odds in each group and the crude odds ratio (OR) using mhor from mStats 
+# To avoid having the reference level confused we will define it using exp_value = 
+
+mhor(mortality,
+  exp=mfgrp ,
+  case=died,
+  strata = NULL,
+  exp_value = NULL,
+  case_value = 1,
+  digits = 4)
+
+
+
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+# Before fitting our model, it is always important that you understand your data
+#especially the missing data 
+
+# To examine the number missingness in our exposure and outcome we can use is.na()
+sum(is.na(mortality$mfgrp))
+sum(is.na(mortality$died))
+
+# Since our exposure variable has 93 missing value and our outcome has 0 
+# We can create a new variable for our outcome which has the value NA if the exposure is NA
+#This step is important in further steps especially LRT 
+
+#We created a new variable called died1 which equals died with value NA if the exposure is NA  
+library(data.table)
+setDT(mortality)[!is.na(mfgrp) , died1 := died]
+
+#We can recheck how many NAs we have in each variable 
+sum(is.na(mortality$mfgrp))
+sum(is.na(mortality$died1))
+
+
+
+#Compute a logistic regression model #We will use died1 rather than died!
+mortamfgrp <- glm(died1~mfgrp, family =binomial(link = "logit") , data = mortality,
+                  na.action = na.exclude)
+mortamfgrp
+summary(mortamfgrp)
+
+
+# Calculate the log likelihood of the model 
+get_loglikelihood(mortamfgrp)
+
+
+#Calculate odds ratio from the model 
+logistic.display(mortamfgrp, decimal = 4)
+
+
+# You can conduct a Likelihood ratio test (LRT) using the functions below
+lrtest(mortamfgrp)
+
+```
+
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+#Although we removed the NAs values in the outcome previously 
+#we can explore this issue in following example 
+
+
+#First we will Compute another logistic regression model mortadied
+#We will use died rather than died1 this time 
+
+mortadied <- glm(died~1, family =binomial(link = "logit") , data = mortality,
+                 na.action = na.exclude)
+
+#Then we will Compute another logistic regression model mortadied1
+#We will use died1 rather than died this time 
+#Remember that we assign the NAs value in the exposure as NAs in the outcome  
+
+mortadied1 <- glm(died1~1, family =binomial(link = "logit") , data = mortality,
+                  na.action = na.exclude)
+
+# We can conduct a Likelihood ratio test (LRT) now 
+
+#Using mortadied1 compared with our previous model mortamfgrp 
+lrtest(mortadied,mortamfgrp)
+#You will get an error message saying models were not all fitted to the same size of dataset
+
+#Now do that using mortadied1 compared with our previous model mortamfgrp 
+lrtest(mortadied1,mortamfgrp)
+
+###This should work ###
+
+
+
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+#We will convert our exposure variable agegrp to factor 
+str(mortality$agegrp)
+
+mortality$agegrp <- factor(mortality$agegrp, levels = c(0,1,2,3), 
+                           labels = c("15-34", "35-54", "55-64", "65+"))
+
+#Tabulate it to make sure that everything went smooth 
+tab1(mortality$agegrp)
+
+# Tabulate the outcome by the exposure # We choose to remove NAs 
+mortality %>% tab(died,by=agegrp, na.rm= T)
+
+
+#Compute a logistic regression model #We will use died1 rather than died!
+mortagegrp <- glm(died~agegrp, family =binomial(link = "logit") , data = mortality,
+                  na.action = na.exclude)
+mortagegrp
+summary(mortagegrp)
+
+
+# Calculate the log likelihood of the model 
+get_loglikelihood(mortagegrp)
+
+
+#Calculate odds ratio from the model 
+logistic.display(mortagegrp, decimal = 4)
+
+
+# You can conduct a Likelihood ratio test (LRT) using the functions below
+lrtest(mortagegrp)
+
+```
+
+
+```{r, eval=F, echo=TRUE, results='hide'}
+
+#Compute a logistic regression model #We will use died1 rather than died!
+mortacombined <- glm(died~ agegrp+vimp, family =binomial(link = "logit") , data = mortality,
+                     na.action = na.exclude)
+mortacombined
+summary(mortagegrp)
+
+
+# Calculate the log likelihood of the model 
+get_loglikelihood(mortagegrp)
+
+
+#Calculate odds ratio from the model 
+logistic.display(mortacombined, decimal = 4,crude = FALSE )
+
+
+# You can conduct a Likelihood ratio test (LRT) using the functions below
+lrtest(mortagegrp)
+
+```

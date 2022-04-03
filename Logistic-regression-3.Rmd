@@ -1,0 +1,286 @@
+---
+title: "SME11"
+author: "Turki Bin Hammad"
+date: "1/27/2022"
+output: pdf_document
+---
+\centering
+# STATISTICAL METHODS IN EPIDEMIOLOGY
+
+# SESSION 11 PRACTICAL
+
+# Logistic regression 3
+
+\raggedright
+
+
+-   Start a new R script and save it
+
+-   Install the required packages
+
+```{r Requried packages, echo= T , eval=FALSE}
+
+install.packages("haven")
+install.packages("dplyr")
+install.packages("epiDisplay")
+install.packages("mStats")
+install.packages("epitools")
+install.packages("tidyverse")
+install.packages("Epi")
+install.packages("catspec")
+```
+
+-   Load the packages
+
+```{r load packages, eval=T, echo=T, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold'}
+
+library("haven")
+library("tidyverse")
+library("epiDisplay")
+library("dplyr")
+library("mStats")
+library("Epi")
+library("biostat3")
+library("rstatix")
+library("insight")
+library("catspec")
+
+```
+
+
+
+
+-   Read the dataset
+
+```{r read dataset, eval=TRUE, echo=TRUE, results='hide'}
+# We will use the read_dta() function from haven package 
+#to read datasets saved as dta files
+# You can check the details of this function by searching its name
+#in the help tab or using question mark followed 
+#by the function name ?read_dta()
+mortality <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mortality.dta")     
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(mortality)
+# codebook is from mStats package 
+codebook(mortality)
+glimpse(mortality)
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+#First we need to check that our outcome is coded as a factor with two levels
+str(mortality$died)
+
+# Transform it to factor
+mortality$died <- factor(mortality$died, levels = c(1,0), labels = c("died","alive"))
+
+#Do the same for exposure 
+mortality$vimp <- factor(mortality$vimp, levels = c(1,0), 
+                         labels = c("Visually impaired","Normal"))
+# The same for sex 0=male 1=female
+mortality$sex <- factor(mortality$sex, levels = c(1,0), labels = c("female","male"))
+
+# Tabulate the outcome by the exposure (using tab() function from mStats)
+mortality %>% tab(died,by=mfpos)
+
+# Stratified analysis 
+mhor(mortality,
+  exp=vimp ,
+  case=died,
+  strata = sex,
+  exp_value = "infected",
+  case_value = 1,
+  digits = 4)
+
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+
+# Using logistic regression to estimate crude OR
+
+#Sometimes R will not choose the desired value 
+#of the exposure or the outcome as a reference
+#So we can set the reference values using relevel() function
+mortality$vimp <- relevel(mortality$vimp, ref = "Normal")
+mortality$died <- relevel(mortality$died, ref = "alive")
+mortality$sex <- relevel(mortality$sex, ref = "male")
+
+#Fit the model without an interaction 
+died_visex <- glm(died~vimp+sex, family =binomial(link = "logit"), 
+                  data = mortality,na.action = na.exclude)
+
+#Fit the model with an interaction
+#The only difference in R is that you will need to use * rather than + 
+#However, the location of the * is very important so the order is important
+#You need to put it next to the exposure variable directly 
+#To illustrate that:
+# died~vimp*sex will give you the interaction between vimp and sex
+#died ~vimp+mfgrp*sex 
+#it will give you the interaction between mfgrp and sex but not vimp
+died_visexint <- glm(died~vimp*sex, family =binomial(link = "logit"), 
+                     data = mortality, na.action = na.exclude)
+# Get a summary of the model 
+summary(died_visex)
+summary(died_visexint)
+
+# Calculate the ORs 
+logistic.display(died_visex,crude = F, decimal = 4)
+logistic.display(died_visexint, crude = F, decimal = 4)
+
+
+```
+
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+#To do the same thing in R you need to relevel your variable
+#We chose female as the baseline group
+mortality$sex <- relevel(mortality$sex, ref = "female")
+
+#Now we re run the model from the previous section 
+#Fit the model without an interaction 
+died_visex <- glm(died~vimp+sex, family =binomial(link = "logit"), 
+                  data = mortality,na.action = na.exclude)
+
+#Fit the model with an interaction
+died_visexint <- glm(died~vimp*sex, family =binomial(link = "logit"), 
+                     data = mortality, na.action = na.exclude)
+# Get a summary of the model 
+summary(died_visex)
+summary(died_visexint)
+
+# Calculate the ORs 
+logistic.display(died_visex,crude = F, decimal = 4)
+logistic.display(died_visexint, crude = F, decimal = 4)
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# Set males as baseline 
+mortality$sex <- relevel(mortality$sex, ref = "male")
+
+#Transform agegrp to factor 
+mortality$agegrp <- factor(mortality$agegrp, levels = c(0,1,2,3), 
+                           labels = c("15-34", "35-54", "55-64", "65+"))
+
+#Fit the model with interaction 
+#(remember that the position of * is important)
+died_visexintage <- glm(died~vimp*sex+agegrp, family =binomial(link = "logit"), 
+                        data = mortality,na.action = na.exclude)
+
+# Get a summary of the model 
+summary(died_visexintage)
+summary(died_visexint)
+
+# Calculate the ORs 
+logistic.display(died_visexintage, decimal = 4, crude = F)
+logistic.display(died_visexint, decimal = 4, crude = F)
+
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# To do that in R we can use the lincom() function 
+# efrom = TRUE is important since we are working on a log scale 
+# logical for whether to exponentiate the confidence interval
+lincom(died_visexintage, c("vimpVisually impaired+vimpVisually impaired:sexfemale"),
+    level = 0.95, eform = TRUE,family =binomial(link = "logit"))
+
+```
+
+
+- Read the dataset 
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+Mwanza <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mwanza.DTA")  
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(Mwanza)
+# codebook is from mStats package 
+codebook(Mwanza)
+glimpse(Mwanza)
+
+```
+
+
+```{r,eval=TRUE, echo=TRUE, results='hide'}
+#The first step is to check the type of out variables and transform them if necessary
+
+# Education 
+Mwanza <- Mwanza %>% mutate( # Create categories 
+     ed2 = as.factor(case_when(
+      ed == 1 ~ "none/adult only",
+      ed >= 2 ~ "1 or more years of formal education"
+    )))
+
+
+#HIV
+str(Mwanza$case)
+#Transform it into factor 
+Mwanza$case <- factor(Mwanza$case, levels = c(1,0), labels = c("Yes", "No")) 
+
+#Age 
+str(Mwanza$age1)
+#age group: 1=15-19, 2=20-24, 3=25-29, 4=30-34, 5=35-44, 6=45-54
+#Transform it into factor 
+Mwanza$age1 <- factor(Mwanza$age1, levels = c(1,2,3,4,5,6), 
+     labels = c("15-19", "20-24", "25-29", "30-34", "35-44", "45-54"))
+
+# Regroup it to three groups 15-24, 25-34, 34+ 
+#to ensure 10 or more cases in each age/education group
+Mwanza <- Mwanza %>% mutate(agegrp3 = as.factor(case_when(
+  age1== "15-19" ~ "15-24",age1== "20-24" ~ "15-24",
+   age1==  "25-29"~ "25-34",age1== "30-34" ~ "25-34",
+  age1== "35-44" ~ "34+",age1== "45-54" ~ "34+")))
+
+#Chose our baseline 
+Mwanza$ed2 <- relevel(Mwanza$ed2, ref ="none/adult only")
+Mwanza$case <- relevel(Mwanza$case, ref ="No")
+Mwanza$agegrp3 <- relevel(Mwanza$agegrp3, ref ="15-24")
+
+#Now we can fit our model with interaction 
+#(remember that the position of * is important)
+HIVedagegrp <- glm(case~ed2*agegrp3, family =binomial(link = "logit"), 
+                      data = Mwanza,na.action = na.exclude)
+
+# Get a summary of the model 
+summary(HIVedagegrp)
+
+# Calculate the ORs 
+logistic.display(HIVedagegrp, decimal = 4, crude = F)
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# To do that in R we can use the lincom() function 
+# efrom = TRUE is important since we are working on a log scale 
+# logical for whether to exponentiate the confidence interval
+lincom(HIVedagegrp, c("ed21 or more years of formal education +
+                      ed21 or more years of formal education:agegrp325-34",
+                     "ed21 or more years of formal education +
+                   ed21 or more years of formal education:agegrp334+"),
+    level = 0.95, eform = TRUE,family =binomial(link = "logit"))
+
+
+# Check the mhor 
+mhor(Mwanza,
+  exp=ed2 ,
+  case=case,
+  strata = agegrp3,
+  exp_value = "ed21 or more years of formal education",
+  case_value = 1,
+  digits = 4)
+
+
+```
+

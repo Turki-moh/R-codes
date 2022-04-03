@@ -1,0 +1,342 @@
+---
+title: "SME 10"
+author: "Turki Bin Hammad"
+date: "1/27/2022"
+output: 
+  pdf_document:
+  highlight: pygments
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+number_sections: TRUE
+---
+\centering
+
+# STATISTICAL METHODS IN EPIDEMIOLOGY
+
+# SESSION 10: PRACTICAL
+
+# Logistic regression 2
+
+
+\raggedright
+
+
+
+- Start a new R script and save it ("10_Rscript file" is a suggested name), install the required packages for the process, load their libraries and then read the *mortality data*, mortality.dta. You can use summarize, codebook, describe and structure to familiarize yourself with the data.
+
++  Start a new R script and save it
+
++ Install the required packages
+
+```{r Requried packages, echo= T , eval=FALSE}
+
+install.packages("haven")
+install.packages("dplyr")
+install.packages("epiDisplay")
+install.packages("mStats")
+install.packages("epitools")
+install.packages("tidyverse")
+install.packages("Epi")
+install.packages("naniar")
+
+```
+
+-   Load the packages
+
+```{r load packages, eval=T, echo=T, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold'}
+
+library("haven")
+library("tidyverse")
+library("epiDisplay")
+library("dplyr")
+library("tidyr")
+library("mStats")
+library("Epi")
+library("biostat3")
+library("rstatix")
+library("insight")
+library("naniar")
+library("ggformula")
+```
+
+
+-   Read the dataset
+
+```{r read dataset, eval=TRUE, echo=TRUE, results='hide'}
+# We will use the read_dta() function from haven package 
+#to read datasets saved as dta files
+# You can check the details of this function by searching its name
+#in the help tab or using question mark followed 
+#by the function name ?read_dta()
+mortality <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mortality.dta")     
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(mortality)
+# codebook is from mStats package 
+codebook(mortality)
+glimpse(mortality)
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+#First we need to check that our outcome is coded as a factor with two levels
+str(mortality$died)
+
+# Transform it to factor
+mortality$died <- factor(mortality$died, levels = c(1,0), labels = c("died","alive"))
+
+#Do the same for exposure 
+#Microfilarial infection  0: uninfected, 1:infected
+str(mortality$mfpos)
+mortality$mfpos <- factor(mortality$mfpos, levels = c(1,0), 
+                        labels = c("infected","uninfected"))
+
+# Tabulate the outcome by the exposure (using tab() function from mStats)
+mortality %>% tab(died,by=mfpos)
+
+
+# Using logistic regression to estimate crude OR
+
+#Sometimes R will not choose the desired value 
+#of the exposure or the outcome as a reference
+#So we can set the reference values using relevel() function
+mortality$mfpos <- relevel(mortality$mfpos, ref = "uninfected")
+mortality$died <- relevel(mortality$died, ref = "alive")
+
+#Fit the model
+died_mfpos <- glm(died~mfpos, family =binomial(link = "logit") , data = mortality,
+                 na.action = na.exclude)
+# Get a summary
+summary(died_mfpos)
+# Calculate the OR
+logistic.display(died_mfpos, decimal = 4)
+
+
+
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# Check agegrp 
+str(mortality$agegrp)
+
+# Transform to factor
+mortality$agegrp <- factor(mortality$agegrp, levels = c(0,1,2,3), 
+                           labels = c("15-34", "35-54", "55-64", "65+"))
+
+# Tabulate using tab() function from mStats
+mortality %>% drop_na() %>% tab(agegrp,by=mfpos)
+
+```
+
+
+```{r eval=TRUE, echo=TRUE, warning=FALSE, results='hide'}
+# Some packages will have overlapping names of functions 
+#so sometimes it is useful to detach the package and reload it to avoid error 
+detach("package:epiDisplay", unload = TRUE)
+library(epiDisplay)
+
+##Mantel-Haenszel (M-H) Odds Ratios from epiDisplay
+mhor(mortality$died,mortality$mfpos, strata = mortality$agegrp, decimal=4, graph = F,
+design = "cohort")
+
+
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+
+#Fit the model
+dmfposage <- glm(died~mfpos+agegrp, family =binomial(link = "logit") , 
+                 data = mortality,na.action = na.exclude)
+#Get a summary
+summary(dmfposage)
+# Calculate ORs 
+logistic.display(dmfposage, decimal = 4, crude = F)
+
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# Transform the vimp to factor 
+mortality$vimp <- factor(mortality$vimp, levels = c(1,0), 
+                         labels = c("Visually impaired","Normal"))
+
+# Set the reference vimp 
+mortality$vimp <- relevel(mortality$vimp, ref = "Normal")
+
+#Fit the model 
+morta_multi <- glm(died~vimp+mfpos+agegrp, family =binomial(link = "logit"), 
+                   data = mortality,na.action = na.exclude)
+
+# Get a summary
+summary(morta_multi)
+
+#calculate ORs 
+logistic.display(morta_multi, decimal = 4, crude = F)
+
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# To perform a likelihood ratio test you need to fit a simpler model 
+#and compare it to the full model
+# In this case the full model includes vimp+mfpos+agegrp 
+# Our simpler model will be without vimp while keeping mfpos+agegrp 
+#since our assumption is that vimp does not have any effect on death 
+#so will not produce any effect if we exclude it from the model
+
+#This step was done in part 4 of the practical where we fitted 
+#the odds ratio for onchocercal infection and age group "dmfposage"
+
+# Conduct a likelihood ratio test (LRT)
+lrtest(dmfposage,morta_multi)
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# In this step again we will have two models one with age group and the other without age group
+
+# Fit a model without age group 
+mortavimpmfpose <- glm(died~vimp+mfpos, family =binomial(link = "logit"), 
+                       data = mortality,na.action = na.exclude)
+
+#The model with age group is "morta_multi"
+
+# Conduct a likelihood ratio test (LRT)
+lrtest(mortavimpmfpose,morta_multi )
+
+
+```
+
+
+
+- Read the dataset 
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+Mwanza <- 
+  read_dta("/Users/turkimohammed/Desktop/Study/SME/SME Datasets 2022/mwanza.DTA")  
+# use the pathname from your computer
+# Explore your dataset #
+# Check the structure of your data
+str(Mwanza)
+# codebook is from mStats package 
+codebook(Mwanza)
+glimpse(Mwanza)
+
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide', fig.keep='none'}
+# We will create a new variable using case_when()
+Mwanza <- Mwanza %>% mutate( # Create categories 
+     ed2 = as.factor(case_when(
+      ed == 1 ~ "none/adult only",
+      ed >= 2 ~ "1 or more years of formal education"
+    )))
+# You can label the variable using var_label() from labelled package
+# To check that you have labeled the variable correctly
+#you can used the codebook  from mStats package again
+var_label(Mwanza$ed2) <- "Education"
+codebook(Mwanza)
+# After creating a new variable, it is good to tabulate
+#it to ensure that your steps was accurate and no mistakes happened
+#We will use tab1 fro epiDisplay package
+tab1(Mwanza$ed2)
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+#Since our cases were read as numerical variable we will need
+#to transform it to a factor using the following code
+#to be able to tabulate it
+Mwanza$case <- factor(Mwanza$case, levels = c(1,0), labels = c("Yes", "No")) 
+
+
+# To create our 2x2 table we will use tab(#cases, by= #exposure)
+#function from mStats package
+Mwanza %>% tab(case,by=ed2, na.rm = F)
+
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide',fig.keep='none'}
+#Tabulate the variable 
+tab1(Mwanza$rel)
+
+# Assign 9=missing to NA
+Mwanza<- Mwanza %>% replace_with_na(replace = list(rel = 9))
+
+# Get the sum of NAs 
+sum(is.na(Mwanza$rel))
+
+#Tabulate the variable again  
+tab1(Mwanza$rel)
+
+
+#Transform religion to a factor
+#religion: 1=Muslim 2=Catholic 3=Protestant 4=other 
+Mwanza$rel <- factor(Mwanza$rel, levels= c(1,2,3,4), 
+            labels = c("Muslim", "Catholic", "Protestant","other"))
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+library(epiDisplay)
+##Mantel-Haenszel (M-H) Odds Ratios from epiDisplay
+mhor(Mwanza$case,Mwanza$ed2, strata = Mwanza$rel, decimal=4, graph = F,
+design = "case-control")
+
+```
+
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+#Fit the model odds ratio for ed2
+oddsed2 <- glm(case~ed2, family =binomial(link = "logit"),
+               data = Mwanza,na.action = na.exclude)
+# Get a summary
+summary(oddsed2)
+
+
+#Fit the model odds ratio for ed2controlling religion
+oddsed2rel <- glm(case~ed2+rel, family =binomial(link = "logit"),
+                  data = Mwanza,na.action = na.exclude)
+# Get a summary
+summary(oddsed2rel)
+
+#calculate ORs 
+#This function will give you the crude versus adjusted
+logistic.display(oddsed2rel, decimal = 4, crude = T)
+
+#Another option is to use the function again for oddsed2
+logistic.display(oddsed2, decimal = 4, crude = T)
+
+
+```
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+# In this step  we will have two models one with ed2 and the other without ed2
+
+# Fit a model without age group 
+oddsrel <- glm(case~rel, family =binomial(link = "logit"), 
+               data = Mwanza,na.action = na.exclude)
+
+#The model with ed2 is "oddsed2rel"
+
+# Conduct a likelihood ratio test (LRT)
+lrtest(oddsed2rel,oddsrel)
+
+
+```
+
