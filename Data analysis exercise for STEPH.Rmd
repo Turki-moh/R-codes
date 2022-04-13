@@ -3,7 +3,6 @@ title: "Data analysis exercise for STEPH"
 date: "11/19/2021"
 output: pdf_document
 ---
-# The Ghana Vitamin A Supplementation Trials Child Health Study
 ## Introduction
 This report presents the findings of the baseline survey conducted as part of the main study. During the survey the study team collected the data through household interviews with the child's main carer, as well as a clinical examination at a central point.
 
