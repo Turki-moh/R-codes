@@ -1,0 +1,237 @@
+---
+title: "Data analysis exercise for STEPH"
+date: "11/19/2021"
+output: pdf_document
+---
+# The Ghana Vitamin A Supplementation Trials Child Health Study
+## Introduction
+This report presents the findings of the baseline survey conducted as part of the main study. During the survey the study team collected the data through household interviews with the child's main carer, as well as a clinical examination at a central point.
+
+## Characteristics of the study population 
+
+### Baseline characteristics
+The study had 1,137 participant (with no missing data) with (51%) female and 560 (49%) male. The age (measured in months) of children was comparable between the two groups with around 95% of them having an age less than 4 years (**Table 1**).
+
+### Nutritional status
+Overall, a large proportion of children were in a poor nutritional status in terms of most of the measured variables(**Table 2**). 
+For anthropometric variables, most of the children had a normal weight given their height with only 5% child being underweight. In reference to age, however, 2 out of every 5 (~40%) children was underweight or stunted in terms of weight and height. This was similar for haemoglobin level with 36% anaemic child, while Vitamin A deficient children were comprised 73% of the total showing a high prevalence of vitamin A deficiency among those children.
+
+### Prevalence of risk factors
+The prevalence of the risk factors was low in most of the children in terms of having a history of measles (~5%), history of hospital admission (8%), inaccessibility to pumped water for any reason (~21%), not being currently breastfed (30%). The proportion was higher in BCG vaccine non-recipient (48%) (using the scar as an index) and non-educated mother (18%) (**Table 3**). 
+
+```{r message=FALSE, include=FALSE}
+library("foreign")
+
+vastcat <- read.dta("//Users//turkimohammed//Desktop//R Data/vastcat.dta", convert.dates = TRUE, convert.factors = TRUE,missing.type = FALSE,convert.underscore = FALSE, warn.missing.labels = TRUE)
+
+vastcat
+
+str(vastcat)
+str(vastcat$bcgscar)
+class(vastcat$sex)
+vastcat$sex <- factor(vastcat$sex, levels= c(1,2), labels = c("Male","Female"))
+vastcat$bcgscar <- factor(vastcat$bcgscar, levels= c(1,0), labels = c("Present","Absent")) 
+vastcat$measles <- factor(vastcat$measles, levels = c(1, 0), labels= c("Yes","No"))
+vastcat$admitted <- factor(vastcat$admitted, levels = c(1, 0), labels= c("Yes","No"))
+vastcat$motheduc <- factor(vastcat$motheduc, levels = c(1, 0), labels= c("Yes","No"))
+vastcat$handpump <- factor(vastcat$handpump, levels = c(1,2,3), labels= c("Yes", "Not currently functioning","No"))
+vastcat$vita <- factor(vastcat$vita, levels = c(1, 0), labels= c("Deficient (<0.7 mmol/l)","Normal (0.7+ mmol/l)"))
+vastcat$anaemia <- factor(vastcat$anaemia, levels = c(1, 0), labels= c("Anaemic (<8 g/dl)","Normal (8+ g/dl)"))
+vastcat$agegp <- factor(vastcat$agegp, levels = c(1,2,3,4,5) , labels= c("0-11","12-23","24-35","36-47","48-59"))
+vastcat$currbf <- factor(vastcat$currbf, levels = c(1,0), labels= c("Yes","No"))
+levels(vastcat$whzcat) <- c("Normal", "Underweight")
+levels(vastcat$wazcat) <- c("Normal", "Underweight")
+levels(vastcat$hazcat) <- c("Normal", "Stunted")
+
+table(vastcat$measles)
+vastcat$measles
+vastcat[1:20,]
+```
+
+```{r echo=FALSE, message=FALSE}
+library("ggplot2")
+library("tidyverse")
+library("gt")
+library("gtsummary")
+library("flextable")
+set_flextable_defaults(fonts_ignore=TRUE)
+agesextab <-vastcat %>%
+    select(sex, agegp) %>%
+    tbl_summary(by=sex,label = agegp ~ "Age group (in months)",digits = list(agegp~1)) %>%
+    modify_spanning_header(c("stat_1", "stat_2") ~ "**Sex**") %>% modify_header( update = list( c("stat_1", "stat_2")  ~ "**{level}, N = {n} ({style_percent(p)}%)**")) %>%
+  modify_footnote(update = c("stat_1", "stat_2") ~ "Number (percentage) of children in each sex") %>%  add_overall(last = TRUE) %>% modify_caption("**Characteristics of children by age and sex**")
+
+agesextab %>% as_flex_table(
+  include = everything(),
+  return_calls = FALSE,
+  strip_md_bold = TRUE
+) %>% fontsize( size = 8, part = "all") %>% autofit(part = c("all"), unit = "cm") %>% set_table_properties(layout = "autofit")
+
+
+
+agesextab
+
+```
+
+
+
+```{r echo=FALSE, fig.height=2, fig.width=2, message=FALSE}
+ 
+anthrotab <- 
+  vastcat %>% select(whzcat, wazcat,hazcat,anaemia, vita) %>%
+    tbl_summary(label = c(whzcat ~ "Child weight for height", wazcat ~ "Child weight for age", hazcat ~ "Child height for age", anaemia~ "Haemoglobin level (g/dl)", vita ~ "Serum retinol level (mmol/l)")) %>% modify_header(label ~ "") %>% modify_spanning_header(stat_0 ~ "**Study participants**") %>% modify_footnote(update = stat_0 ~ "N= Number of children, All anthropometric variables were computed using the US National Center for Health Statistics (NCHS) as a reference.") %>% modify_caption("**Nutritional Status**")
+anthrotab <- anthrotab %>% as_flex_table(include = everything(),
+  return_calls = FALSE,strip_md_bold = TRUE) %>% fontsize( size = 8, part = "all") %>% autofit(part = c("all")) 
+anthrotab
+
+
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+riskfactors <- vastcat %>% select(bcgscar, measles,admitted,motheduc, handpump,currbf) %>%tbl_summary(label = c(bcgscar ~ "BCG vaccine scar", measles ~ "Ever had measles", admitted ~ "Admitted to the hospital in the past year", motheduc~ "Mother educated", handpump ~ "Access to borehole with pump", currbf ~ " Child is currently breastfed"), type = list(measles ~ "categorical", admitted ~ "categorical",motheduc ~"categorical", currbf~ "categorical")) %>% modify_spanning_header(stat_0 ~ "**Study participants**") %>% modify_footnote(update = stat_0 ~ "Number of children") %>% modify_caption("**Risk factors**")
+riskfactors  
+
+
+```
+
+
+
+
+## Association of each individual risk factor with Vitamin A deficiency
+
+### Age and sex as risk factors for Vitamin A deficiency
+The results showed a modest evidence against the null value of no difference between age groups and their serum retinol level (**P=0.025**). This means that the probability of observing such difference or more extreme is 1 in 40. The evidence of a **trend** of association between age groups and Vitamin A deficiency was strong (**P=0.0013**) with an increasing trend of higher odds ratio with increasing age. 
+The evidence for an association of sex with vitamin A deficiency was very weak (**P=0.92**) with the 95%CI of the **odds ratio crossing the null value** (**Table5**). 
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+# try to make it using gtsummary ####
+#age and vita####
+library(huxtable)
+
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# age and vita ####
+
+agevita <- vastcat %>% select(agegp,vita) %>% tbl_summary(by= "vita", label = c(agegp ~ "Age group (in months)")) %>% modify_spanning_header(c("stat_1", "stat_2") ~ "**Serum retinol level**") %>% add_p(test = all_categorical() ~ "chisq.test",pvalue_fun = function(x) style_pvalue(x, digits = 2) ,
+  group = vita,include = everything(),test.args = NULL,
+  exclude = NULL) %>% modify_caption(" Association of age groups with Vitamin A deficiency")%>% modify_header(update = c(stat_1 ~ "**Defecient** N={n} ({style_percent (p)}%)", stat_2 ~ "**Normal** N={n} ({style_percent (p)}%)"))
+agevita <- agevita %>% as_flex_table(include = everything(),
+  return_calls = FALSE,
+  strip_md_bold = TRUE)
+
+
+
+# sex and vita ####
+sexvita <- vastcat %>% select(sex,vita) %>% tbl_summary(by= "vita", label = c(sex ~ "Sex")) %>% add_p(test = all_categorical() ~ "chisq.test",pvalue_fun = function(x) style_pvalue(x, digits = 2) ,
+  group = vita,include = everything(),test.args = NULL,
+  exclude = NULL) %>%  modify_caption(" Association of sex with Vitamin A deficiency")%>% modify_spanning_header(c("stat_1", "stat_2") ~ "**Serum retinol level**") %>% modify_header(update = c(stat_1 ~ "**Defecient** N={n} ({style_percent (p)}%)", stat_2 ~ "**Normal** N={n} ({style_percent (p)}%)"))
+sexvita <- sexvita %>% as_flex_table()
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=TRUE}
+agevita 
+sexvita
+```
+
+
+```{r echo=FALSE, message=FALSE}
+nutvit <- vastcat %>% select(vita,hazcat,whzcat,wazcat,anaemia) %>% tbl_summary(by= "vita",label = c(whzcat ~ "Child weight for height", wazcat ~ "Child weight for age", hazcat ~ "Child height for age", anaemia~ "Haemoglobin level (g/dl)")) %>%  add_p(test = all_categorical() ~ "chisq.test", pvalue_fun = function(x) style_pvalue(x, digits = 3) ,
+  group = vita, include = everything(),
+  test.args = NULL, exclude = NULL) %>%  modify_header(update = c(stat_1 ~ "**Defecient** N={n} ({style_percent (p)}%)", stat_2 ~ "**Normal** N={n} ({style_percent (p)}%)"))
+nutvit <- nutvit %>% as_flex_table()
+
+nutvit
+```
+
+```{r eval=FALSE, include=FALSE}
+library(epiDisplay)
+library(magrittr)
+library(foreign)
+library(psych)
+library(tidyverse)
+library(rstatix)
+# age and vita####
+vastcat %$% tabpct(agegp,vita, graph = F)
+#odds, cis, p_value #
+vastcat %$% cc(vita,agegp, graph = F)  
+
+#test for trend age and vita 
+xtab<- table(vastcat$agegp,vastcat$vita)
+prop_trend_test(xtab)
+
+#sex and vita####
+vastcat %$% tabpct(sex,vita, graph = F, percent = "column")
+##odds, cis, p_value #
+vastcat %$% cc(vita,sex, graph = F,design = "cohort")  
+
+
+
+
+         
+
+#nutritional status  
+#hazcat and vita####
+vastcat %$% tabpct(hazcat,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,hazcat, graph = F,design = "cohort")  
+
+#whzcat and vita####
+vastcat %$% tabpct(whzcat,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,whzcat, graph = F,design = "cohort")  
+
+#wazcat and vita####
+vastcat %$% tabpct(wazcat,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,wazcat, graph = F,design = "cohort")  
+
+#anaemia and vita####
+vastcat %$% tabpct(vita,anaemia, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,anaemia, graph = F,design = "cohort")
+
+
+
+
+#other risk factors
+
+#bcgscar and vita####
+vastcat %$% tabpct(bcgscar,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,bcgscar, graph = F,design = "cohort")  
+
+#measles and vita####
+vastcat %$% tabpct(measles,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,measles, graph = F,design = "cohort")  
+
+#admitted and vita####
+vastcat %$% tabpct(admitted,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,admitted, graph = F,design = "cohort")  
+
+#motheduc and vita####
+vastcat %$% tabpct(motheduc,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,motheduc, graph = F,design = "cohort")  
+
+#handpump and vita####
+vastcat %$% tabpct(handpump,vita, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,handpump, graph = F,design = "cohort")  
+
+
+#breastfed and vita####
+vastcat %$% tabpct(vita,currbf, graph = F, percent = "column")
+#odds, cis, p_value #
+vastcat %$% cc(vita,currbf, graph = TR,design = "cohort")  
+
+
+```
